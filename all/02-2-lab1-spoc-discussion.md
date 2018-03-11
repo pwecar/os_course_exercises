@@ -131,106 +131,32 @@ int main(int argc, char* argv[])
 ## 各知识点的小练习
 
 ### 4.1 启动顺序
----
-- 读入ucore内核的代码？
-
-
-- 跳转到ucore内核的代码？
-
 
 - 段寄存器的字段含义和功能有哪些？
 
-- 什么是全局描述符表GDT和局部描述符表LDT？
+代码段寄存器CS存放当前正在运行的程序代码所在段的段基址，表示当前使用的指令代码可以从该段寄存器指定的存储器段中取得，相应的偏移量则由IP提供。
+数据段寄存器DS指出当前程序使用的数据所存放段的最低地址，即存放数据段的段基址。
+堆栈段寄存器SS指出当前堆栈的底部地址，即存放堆栈段的段基址。
+附加段寄存器ES指出当前程序使用附加数据段的段基址，该段是串操作指令中目的串所在的段。
 
-- 全局描述符表的[初始化代码]
+- 描述符特权级DPL、当前特权级CPL和请求特权级RPL的含义是什么？在哪些寄存器中这些字段？对应的访问条件是什么？
 
-(https://github.com/chyyuu/ucore_os_lab/blob/master/labcodes_answer/lab1_result/boot/bootasm.S#L49)？
-
-
-- GDT内容的设置格式？初始映射的基址和长度？特权级的设置位置？
-
-- 描述符特权级DPL、当前特权级CPL和请求特权级RPL的含义是什么？在哪些寄存器中这些字段？对应的访问条件是什么？ (challenge)写出一些简单的小程序（c or asm）来体现这些特权级的区别和联系。
-
-
-```
- - 建议参见链接“ http://blog.csdn.net/better0332/article/details/3416749 ”对特权级的表述，并查阅指令手册。 
-```
- 
-
-- CR0控制寄存器的字段含义和功能有哪些？使能保护模式的控制如何实现？
-
-```
-CR0中PE标志位设置
- 
- https://github.com/chyyuu/ucore_os_lab/blob/master/labcodes_answer/lab1_result/boot/bootasm.S#L52 
-```
+CPL是当前正在执行的代码所在的段的特权级，存在于cs寄存器的低两位。
+RPL是进程对段访问的请求权限，是对于段选择子而言的，每个段选择子有自己的RPL，它说明的是进程对段访问的请求权限，不同访问的RPL可以不同。
+RPL可能会削弱CPL的作用，例如当前CPL=0的进程要访问一个数据段，它把段选择符中的RPL设为3，这样虽然它对该段仍然只有特权为3的访问权限。
+DPL存储在段描述符中，规定访问该段的权限级别，每个段的DPL固定。
+当进程访问一个段时，需要进行特权级检查，一般要求DPL>=max{CPL, RPL}
 
 - 分析可执行文件格式elf的格式。
-
-ANSWER:
-
- 1. ELF header的格式；([文档：Header](http://wiki.osdev.org/ELF)、[代码](https://github.com/chyyuu/ucore_os_lab/blob/master/labcodes_answer/lab1_result/libs/elf.h#L9)) 
- 1. proghdr的格式分析；（[文档：Program header](http://wiki.osdev.org/ELF)、[代码](https://github.com/chyyuu/ucore_os_lab/blob/master/labcodes_answer/lab1_result/libs/elf.h#L28)）
-
-
-- ucore内核的elf是否要求连续存放？为什么？
-
 
 ---
 
 ### 4.2 C函数调用的实现
----
-
-- 函数调用的stackframe结构？函数调用的参数传递方法有哪几种？
-  1. [Understanding the Stack](http://www.cs.umd.edu/class/sum2003/cmsc311/Notes/Mips/stack.html)：函数调用时堆栈状态分析
-  1. [print_stackframe](https://github.com/chyyuu/ucore_os_lab/blob/master/labcodes_answer/lab1_result/kern/debug/kdebug.c#L292)：ucore中输出当前堆栈状态的函数实现
-
-
-- 系统调用的stackframe结构？系统调用的参数传递方法有哪几种？
-
- 
-
-- 分析ucore的系统调用实现代码；
-
-
-- 分析Linux的系统调用实现代码；
-
-- 比较不同特权级的中断切换时的堆栈变化差别；(challenge)写出一些简单的小程序（c or asm）来显示出不同特权级的的中断切换的堆栈变化情况。
-
-
----
-
-### 4.3 GCC内联汇编
----
-
-- 使用内联汇编的原因？
-
-特权指令、性能优化
-
-- 对ucore中的一段内联汇编进行完整的解释？
- 
- * [GCC-Inline-Assembly-HOWTO](http://ibiblio.org/gferg/ldp/GCC-Inline-Assembly-HOWTO.html)：有_syscall3的内联汇编说明；
-
----
 
 ### 4.4 x86中断处理过程
 ---
 
 4.4 x86中断处理过程
-
-- 中断描述符表IDT的结构？
-
-
-
-- IDT表的格式和初始化代码在哪？
-
-
-
-- 中断描述表到中断服务例程的地址计算过程？
-
-
-
-- IDTR的初始化代码在哪？
 
 
 - 中断处理中硬件压栈内容？用户态中断和内核态中断的硬件压栈有什么不同？
@@ -238,10 +164,8 @@ ANSWER:
 
 - 为什么在用户态的中断响应要使用内核堆栈？
   
-  保护中断服务例程代码的安全；
+  为了要保护中断服务例程代码的安全。
 
-
-- 中断处理中硬件保存了哪些寄存器？
 
 - trap类型的中断门与interrupt类型的中断门有啥设置上的差别？如果在设置中断门上不做区分，会有什么可能的后果?
 
@@ -276,30 +200,6 @@ ANSWER:
 
 ---
 
-### 4.6 练习二 qemu和gdb的使用
----
-
-- qemu的命令行参数含义解释？
-
-
-
-- gdb命令格式？反汇编、运行、断点设置
-
-
-### 4.7 练习三 加载程序
----
-
-- A20的使能代码分析？
-
-
-- 生成主引导扇区的过程分析？
-
-
-- 保护模式的切换代码？
-
-
-- 如何识别elf格式？对应代码分析？
-
 
 - 跳转到elf的代码？
 
@@ -308,57 +208,3 @@ ANSWER:
 
 
 ---
-
-### 4.8 练习四和五 ucore内核映像加载和函数调用栈分析
----
-
-- 如何识别elf格式？对应代码分析？
-
-
-- 跳转到elf的代码？
-
-- 函数调用栈获取？
-
-- 函数read_ebp是inline的，而函数read_eip是__noinline的，能否正好相反设置，即设置函数read_ebp是_noinline的，而函数read_eip是inline的？为什么？
-
----
-
-
-### 4.9 练习六 完善中断初始化和处理
----
-
-- 各种设备的中断初始化？
-
-- 中断描述符表IDT的排列顺序？
-
-
-- CPU加电初始化后中断是使能的吗？为什么？
-
-- 中断服务例程的入口地址在什么地方设置的？
-
-- alltrap的中断号是在哪写入到trapframe结构中的？
-
-
-- trapframe结构？
-
----
-
-## v9-cpu相关题目
----
-
-### 提前准备
-```
-download os_tutorial_lab
-cd os_tutorial_lab/v9_computer/os_user_task_syscall
-make
-make run
-
-```
-
-### v9-cpu的执行过程(challenge)
-  1. 参考os*.c，写一个小程序，能够显示在用户态无法执行的所有特权指令，能够显示出不同特权级的的中断切换的堆栈变化情况。
-  1. 扩展em.c，可以打印v9-cpu执行的每一条指令和寄存器状态
-  1. 扩展em.c，在产生fatal错误后，把这之前执行的n条指令和寄存器状态打印出来
-  1. 扩展c.c和em.c，使得可以指定em.c能够跟踪并打印执行程序中对全局变量的读写或修改的指令，以及指令的执行情况
-  1. 扩展em.c的debugger功能，可以设置断点
-  1. 扩展em.c的debugger功能，可以任意打断当前执行程序的执行，回到debugger
